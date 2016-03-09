@@ -4,9 +4,8 @@ module Homework
     base_uri "https://api.github.com"
 
     def initialize
-      @auth_token = "a8ba164f9526540607f9a91b0625120ff5352f3e"
       @headers = {
-        "Authorization" => "token #{@auth_token}",
+        "Authorization" => "token #{ENV["OAUTH_TOKEN"]}",
         "User-Agent"    => "HTTParty"
       }
     end
@@ -27,6 +26,34 @@ module Homework
 
     def list_team_members(team_id)
       Github.get("/teams/#{team_id}/members", headers: @headers)
+    end
+
+    def list_issues(owner, repo)
+      Github.get("/repos/#{owner}/#{repo}/issues", headers: @headers)
+    end
+
+    def comment_issue(owner, repo, issue_num, comment)
+      Github.post("/repos/#{owner}/#{repo}/issues/#{issue_num}/comments",
+                  headers: @headers, body: {"body" => comment}.to_json)
+    end
+
+    def close_issue(owner, repo, issue_num)
+      Github.patch("/repos/#{owner}/#{repo}/issues/#{issue_num}",
+                   headers: @headers, body: {"state" => "closed"}.to_json)
+    end
+
+    def get_gist(id)
+      Github.get("/gists/#{id}", headers: @headers)
+    end
+
+    # def create_issue(owner, repo, title)
+    #   Github.post("/repos/#{owner}/#{repo}/issues", headers: @headers, body: {"title" => title}.to_json)
+    # end
+
+    def create_issue(owner, repo, title, options={})
+      params = options.merge({"title" => title}).to_json
+      Github.post("/repos/#{owner}/#{repo}/issues", headers: @headers,
+                  body: params)
     end
   end
 end
