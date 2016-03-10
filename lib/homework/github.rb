@@ -16,16 +16,14 @@ module Homework
 
     def list_members_by_team_name(org, team_name)
       teams = list_teams(org)
-      team = teams.find { |team| team["name"] == team_name }
+      if teams.headers["X-ratelimit-remaining"].zero?
+        raise RateLimitError, "You're out of requests until #{Time.at(teams.headers["X-ratelimit-reset"])}!"
+      end
+      if teams.code == 403
+        raise InsufficientAccessError, "Your access credentials for Github were insufficient."
+      end
+      team = teams.find { |t| t["name"] == team_name }
       list_team_members(team["id"])
-    end
-
-    def list_teams(organization)
-      Github.get("/orgs/#{organization}/teams", headers: @headers)
-    end
-
-    def list_team_members(team_id)
-      Github.get("/teams/#{team_id}/members", headers: @headers)
     end
 
     def list_issues(owner, repo)
@@ -55,5 +53,23 @@ module Homework
       Github.post("/repos/#{owner}/#{repo}/issues", headers: @headers,
                   body: params)
     end
+
+
+    private
+
+
+    def list_teams(organization)
+      Github.get("/orgs/#{organization}/teams", headers: @headers)
+    end
+
+    def list_team_members(team_id)
+      Github.get("/teams/#{team_id}/members", headers: @headers)
+    end
+  end
+
+  class InsufficientAccessError < StandardError
+  end
+
+  class RateLimitError < StandardError
   end
 end
